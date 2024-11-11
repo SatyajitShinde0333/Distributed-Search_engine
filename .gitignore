@@ -1,0 +1,4 @@
+*.pyc
+*.log
+search_pb2*
+replicas_list.txt

@@ -1,0 +1,95 @@
+syntax = "proto2";
+
+/* 
+Contains protobuf specifications for search requests and responses from client to master server
+*/
+
+
+message SearchRequest {
+	required string query = 1;
+	optional string location = 2;
+}
+
+message SearchResponse {
+	repeated string urls = 3;
+}
+
+message CommitRequest {
+	// for the crawler updates
+	optional string data = 4;
+	
+	// for the 2 phase commit 
+	optional string replica_ip =5;
+	optional string location = 6;
+	repeated string indices = 7;
+}
+
+message CommitVote {
+	optional int32 status = 5;
+}
+
+enum CommitCode {
+    COMMIT = 0;
+    ROLL_BACK = 1;
+}
+
+message CommitStatusUpdate {
+	optional CommitCode code = 6;
+}
+
+message Acknowledgement {
+	optional int32 status = 7;
+}
+
+service Search {
+	rpc SearchForString(SearchRequest) returns (SearchResponse) {}
+}
+
+service DatabaseWrite {
+	rpc WriteIndicesToTable(CommitRequest) returns (Acknowledgement) {}
+	rpc QueryToCommit(CommitRequest) returns (CommitVote) {}
+	rpc CommitPhase(CommitStatusUpdate) returns (Acknowledgement) {}
+}
+
+
+message IsMaster {
+	// message sent by the backup to crawler to inform of the change in master
+	optional string ip = 1; // left optional, not passing anyways in the application
+}
+
+message HealthCheckRequest {
+	required string healthCheck = 1;
+}
+
+message HealthCheckResponse {
+	required string status = 1;
+	optional string data = 2;
+}
+
+service HealthCheck {
+ 	rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+service LeaderNotice {
+	// rpc by masterbackup to crawler to inform change in master
+ 	rpc MasterChange(IsMaster) returns (Acknowledgement);
+}
+
+// for the dynamic replication
+message ReplicaRequest {
+	required string data = 1;
+	optional string master_ip = 2;
+	optional bool create = 3;
+}
+
+message ReplicaStatus {
+	required int32 status = 1;
+}
+
+service ReplicaCreation {
+	rpc CreateReplica(ReplicaRequest) returns (ReplicaStatus);
+}
+
+service ReplicaUpdate {
+	rpc UpdateReplica(ReplicaRequest) returns (ReplicaStatus);
+}
